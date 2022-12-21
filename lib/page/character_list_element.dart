@@ -19,7 +19,7 @@ class CharacterListElement extends StatefulWidget {
 class _CharacterListElementState extends State<CharacterListElement> {
   _CharacterListElementState(SearchController? _controller) {
     if (_controller != null) {
-      _controller.methodA = filterSearch;
+      _controller.callFilter = filterSearch;
     }
   }
   List<Character> characters = [];
@@ -57,22 +57,24 @@ class _CharacterListElementState extends State<CharacterListElement> {
   }
 
   void filterSearch() {
+    var searcheds = characters
+        .where((element) =>
+            (element.participantname != null &&
+                element.participantname!
+                    .toLowerCase()
+                    .contains(widget.search!.toLowerCase())) ||
+            (element.title != null &&
+                element.title!
+                    .toLowerCase()
+                    .contains(widget.search!.toLowerCase())) ||
+            (element.category != null &&
+                element.category!
+                    .toLowerCase()
+                    .contains(widget.search!.toLowerCase())))
+        .toList();
+    print(searcheds.length);
     setState(() {
-      searchedCharacters = characters
-          .where((element) =>
-              (element.participantname != null &&
-                  element.participantname!
-                      .toLowerCase()
-                      .contains(widget.search!.toLowerCase())) ||
-              (element.title != null &&
-                  element.title!
-                      .toLowerCase()
-                      .contains(widget.search!.toLowerCase())) ||
-              (element.category != null &&
-                  element.category!
-                      .toLowerCase()
-                      .contains(widget.search!.toLowerCase())))
-          .toList();
+      searchedCharacters = searcheds;
     });
   }
 
@@ -117,8 +119,13 @@ class _CharacterListElementState extends State<CharacterListElement> {
                                 image: imageProvider, fit: BoxFit.cover),
                           ),
                         ),
-                        placeholder: (context, url) =>
-                            CircularProgressIndicator(),
+                        placeholder: (context, url) => Container(
+                          height: 80,
+                          width: 80,
+                          child: Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        ),
                         errorWidget: (context, url, error) => Icon(Icons.error),
                       ),
                       onTap: (() {

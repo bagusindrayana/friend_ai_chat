@@ -29,4 +29,14 @@ class UtilityHelper {
       },
     );
   }
+
+  //show snackbar
+  static void showSnackBar(BuildContext context, String content) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(content),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
 }

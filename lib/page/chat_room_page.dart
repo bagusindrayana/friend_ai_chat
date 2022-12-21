@@ -10,8 +10,10 @@ import 'package:friend_ai/component/message_component.dart';
 import 'package:friend_ai/model/character.dart';
 import 'package:friend_ai/model/charcater_detail.dart';
 import 'package:friend_ai/model/message.dart';
+import 'package:friend_ai/provider/api_provider.dart';
 import 'package:friend_ai/repository/character_repository.dart';
 import 'package:friend_ai/repository/chat_repository.dart';
+import 'package:friend_ai/repository/uuid_repository.dart';
 import 'package:friend_ai/utility/utility_helper.dart';
 import 'package:loading_indicator/loading_indicator.dart';
 
@@ -34,12 +36,22 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   List<AnimatedTextKit> replieAnimatedTextKit = [];
   TextEditingController msgController = TextEditingController();
   ScrollController scrollController = ScrollController();
+
+  String? token;
+
+  Future<bool> getToken() async {
+    return await UuidRepository.getLazyToken().then((value) {
+      token = value?.token;
+      return true;
+    }).onError((error, stackTrace) => false);
+  }
+
   void getCharacterDetail() async {
     setState(() {
       loading = true;
     });
     await CharacterRepository.getCharacter(
-            "${widget.character?.externalid}", "${widget.token}")
+            "${widget.character?.externalid}", "${token}")
         .then((value) {
       setState(() {
         characterDetail = value;
@@ -58,7 +70,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     }
 
     await ChatRepository.continueChat(
-            "${widget.character?.externalid}", "${widget.token}")
+            "${widget.character?.externalid}", "${token}")
         .then((value) async {
       if (value != null) {
         setState(() {
@@ -66,7 +78,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
         });
       } else {
         await ChatRepository.createChat(
-                "${widget.character?.externalid}", "${widget.token}")
+                "${widget.character?.externalid}", "${token}")
             .then((v) {
           setState(() {
             historyId = v;
@@ -76,8 +88,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     });
 
     if (historyId != null) {
-      await ChatRepository.getMessage(historyId!, "${widget.token}")
-          .then((value) {
+      await ChatRepository.getMessage(historyId!, "${token}").then((value) {
         setState(() {
           messages = value;
         });
@@ -98,6 +109,13 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   }
 
   void sendMessage() async {
+    if (msgController.text == "") {
+      return;
+    }
+    if (loading) {
+      UtilityHelper.showSnackBar(context, "Please wait...");
+      return;
+    }
     var msg = null;
     setState(() {
       loading = true;
@@ -117,9 +135,19 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     if (msg == null) {
       return;
     }
+
+    await streamMessage(msg);
+
+    setState(() {
+      loading = false;
+    });
+  }
+
+  Future<bool> streamMessage(msg) async {
+    bool _result = true;
     Response<ResponseBody> rs;
-    rs = await Dio().post<ResponseBody>(
-      "https://beta.character.ai/chat/streaming/",
+    rs = await ApiProvider.stream(
+      url: "https://beta.character.ai/chat/streaming/",
       data: {
         "history_external_id": historyId,
         "character_external_id": widget.character?.externalid,
@@ -150,10 +178,10 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
         "voice_enabled": false
       },
 
-      options: Options(responseType: ResponseType.stream, headers: {
-        "authorization": "Token ${widget.token}",
+      header: {
+        "authorization": "Token ${token}",
         "Content-Type": "application/json"
-      }), // set responseType to `stream`
+      }, // set responseType to `stream`
     );
     StreamTransformer<Uint8List, List<int>> unit8Transformer =
         StreamTransformer.fromHandlers(
@@ -170,12 +198,22 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
       var r = null;
       try {
         r = jsonDecode(event);
-      } catch (e) {}
-      print(r);
+      } catch (e) {
+        print(e);
+        _result = false;
+      }
+
       if (r != null) {
         if (r['force_login'] != null && r['force_login'] == true) {
-          UtilityHelper.showAlertDialog(context, "Anda harus login",
-              "Please login to continue use this service");
+          getToken().then((_v) {
+            if (_v) {
+              streamMessage(msg);
+            } else {
+              UtilityHelper.showAlertDialog(context, "Anda harus login",
+                  "Please login to continue use this service");
+            }
+          });
+          //UtilityHelper.showAlertDialog(context, "Anda harus login","Please login to continue use this service");
         }
 
         if (r['replies'] != null && r['replies'].length > 0) {
@@ -192,13 +230,6 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
                   messages[x].text = new_text;
                   messages[x].animated = (r['is_final_chunk'] == false &&
                       r['is_final_chunk'] != null);
-                  // var t_p =
-                  //     TypewriterAnimatedText(new_text.replaceAll(old_text, ""));
-                  // messages[x].animatedTextKits?.add(AnimatedTextKit(
-                  //       repeatForever: false,
-                  //       totalRepeatCount: 1,
-                  //       animatedTexts: [t_p],
-                  //     ));
                 });
               }
             }
@@ -241,33 +272,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
         }
       });
     });
-
-    // await ChatRepository.streamMessage(
-    //         "${widget.character?.externalid}",
-    //         "${historyId}",
-    //         "${widget.token}",
-    //         msgController.text,
-    //         "${characterDetail?.participantUserUsername}")
-    //     .then((value) {
-    //   setState(() {
-    //     replies = value;
-    //     print(replies['replies']);
-    //     for (var r in replies['replies']) {
-    //       messages.add(
-    //           Message(text: r['text'], srcName: replies['src_char']['name']));
-    //     }
-    //     Future.delayed(Duration(milliseconds: 100), () {
-    //       scrollController.animateTo(
-    //         scrollController.position.maxScrollExtent,
-    //         curve: Curves.easeOut,
-    //         duration: const Duration(milliseconds: 300),
-    //       );
-    //     });
-    //   });
-    // });
-    setState(() {
-      loading = false;
-    });
+    return _result;
   }
 
   @override
@@ -281,6 +286,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   void initState() {
     // TODO: implement initState
     super.initState();
+    token = widget.token;
     getCharacterDetail();
   }
 
@@ -309,6 +315,12 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
               Text("${widget.character?.participantname}"),
             ],
           ),
+          // actions: [
+          //   IconButton(
+          //       icon: Icon(Icons.chat_bubble),
+          //       onPressed: () {
+          //       })
+          // ],
         ),
         body: Stack(
           children: <Widget>[

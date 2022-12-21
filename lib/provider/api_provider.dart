@@ -12,7 +12,8 @@ class ApiProvider {
   );
   static final Dio _dio = Dio(_options);
 
-  //static const String base_url = 'http://192.168.8.217:3000';
+  //link api local
+  static const String base_url = 'http://192.168.8.217:3000?url=';
 
   static Future<Response> get({String? url, dynamic? header}) async {
     (_dio.httpClientAdapter as DefaultHttpClientAdapter).onHttpClientCreate =
@@ -22,7 +23,7 @@ class ApiProvider {
       return client;
     };
     _dio.options.headers = header ?? {};
-    String _url = '${url}';
+    String _url = '${base_url}${url}';
     return await _dio.get(_url);
   }
 
@@ -35,7 +36,7 @@ class ApiProvider {
       return client;
     };
     print(header);
-    String _url = '${url}';
+    String _url = '${base_url}${url}';
     _dio.options.headers = header ?? {};
     print(data);
     return await _dio.post(_url, data: data);
@@ -43,17 +44,26 @@ class ApiProvider {
 
   static Future<Response<ResponseBody>> stream(
       {String? url, dynamic? data, dynamic? header}) async {
-    (_dio.httpClientAdapter as DefaultHttpClientAdapter).onHttpClientCreate =
+    BaseOptions _c_options = BaseOptions(
+      receiveDataWhenStatusError: true,
+      connectTimeout: 30 * 1000, // 30 seconds
+      receiveTimeout: 30 * 1000, // 30 seconds
+      sendTimeout: 30 * 1000, // 30 seconds
+    );
+
+    _c_options.headers = header ?? {};
+    _c_options.responseType = ResponseType.stream;
+    Dio dio = Dio(_c_options);
+    (dio.httpClientAdapter as DefaultHttpClientAdapter).onHttpClientCreate =
         (HttpClient client) {
       client.badCertificateCallback =
           (X509Certificate cert, String host, int port) => true;
       return client;
     };
-    String _url = '${url}';
-    _dio.options.headers = header ?? {};
-    // _dio.options.responseType = ResponseType.stream;
+    String _url = '${base_url}${url}';
+
     Response<ResponseBody> rs;
-    rs = await _dio.post<ResponseBody>(_url, data: data);
+    rs = await dio.post<ResponseBody>(_url, data: data);
     return rs;
   }
 }

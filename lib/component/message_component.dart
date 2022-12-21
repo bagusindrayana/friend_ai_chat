@@ -66,7 +66,7 @@ class _MessageComponentState extends State<MessageComponent> {
         constraints: BoxConstraints(
           maxWidth: MediaQuery.of(context).size.width * 0.7,
         ),
-        child: (widget.message.animated == true)
+        child: (widget.message.animated == true || printex != "")
             ? Text("${printex}")
             : Text("${widget.message.text}"),
       ),

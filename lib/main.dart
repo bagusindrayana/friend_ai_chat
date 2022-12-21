@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:friend_ai/component/keep_page_alive.dart';
 import 'package:friend_ai/page/character_list_element.dart';
 import 'package:friend_ai/page/chat_history_element.dart';
+import 'package:friend_ai/page/login_charcater_ai_page.dart';
 
 class MyHttpOverrides extends HttpOverrides {
   @override
@@ -17,6 +18,7 @@ class MyHttpOverrides extends HttpOverrides {
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+
   HttpOverrides.global = MyHttpOverrides();
   runApp(const MyApp());
 }
@@ -36,7 +38,7 @@ class MyApp extends StatelessWidget {
 }
 
 class SearchController {
-  late void Function() methodA;
+  late void Function() callFilter;
 }
 
 class MainNavigator extends StatefulWidget {
@@ -72,9 +74,8 @@ class _MainNavigatorState extends State<MainNavigator> {
         IconButton(
           icon: const Icon(Icons.clear),
           onPressed: () {
-            setState(() {
-              _stopSearching();
-            });
+            _stopSearching();
+            _clearSearchQuery();
           },
         ),
       ];
@@ -85,6 +86,14 @@ class _MainNavigatorState extends State<MainNavigator> {
         icon: const Icon(Icons.search),
         onPressed: _startSearch,
       ),
+      IconButton(
+          onPressed: () {
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => LoginCharacterAiPage()));
+          },
+          icon: Icon(Icons.more_vert))
     ];
   }
 
@@ -97,13 +106,11 @@ class _MainNavigatorState extends State<MainNavigator> {
   void updateSearchQuery(String newQuery) {
     setState(() {
       searchQuery = newQuery;
-      searchController.methodA();
+      searchController.callFilter();
     });
   }
 
   void _stopSearching() {
-    _clearSearchQuery();
-
     setState(() {
       _isSearching = false;
     });
@@ -112,8 +119,10 @@ class _MainNavigatorState extends State<MainNavigator> {
   void _clearSearchQuery() {
     setState(() {
       _searchQueryController.clear();
-      updateSearchQuery("");
-      searchController.methodA();
+      searchQuery = "";
+    });
+    Future.delayed(Duration(milliseconds: 100), () {
+      searchController.callFilter();
     });
   }
 
@@ -134,9 +143,8 @@ class _MainNavigatorState extends State<MainNavigator> {
           leading: _isSearching
               ? BackButton(
                   onPressed: (() {
-                    setState(() {
-                      _stopSearching();
-                    });
+                    _stopSearching();
+                    _clearSearchQuery();
                   }),
                 )
               : null,

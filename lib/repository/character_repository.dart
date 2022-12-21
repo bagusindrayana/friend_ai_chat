@@ -14,9 +14,17 @@ class CharacterRepository {
 
       result.forEach((final String key, final value) {
         for (var char in result[key]) {
-          var new_c = char;
-          new_c['category'] = key;
-          datas.add(Character.fromJson(new_c));
+          //check if the character is already in the list
+          var index = datas.indexWhere(
+              (element) => element.externalid == char['external_id']);
+          if (index == -1) {
+            var new_c = char;
+            new_c['category'] = key;
+            datas.add(Character.fromJson(new_c));
+          } else {
+            //if the character is already in the list, add the category to the existing character
+            datas[index].category = "${datas[index].category}, ${key}";
+          }
         }
       });
       // for (var characters in result) {
@@ -41,7 +49,9 @@ class CharacterRepository {
           'authorization': "Token $token",
           "Content-Type": "application/json"
         });
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 &&
+        response.data != null &&
+        response.data['character'] != null) {
       return CharacterDetail.fromJson(response.data['character']);
     } else {
       throw Exception('Failed to load character');
