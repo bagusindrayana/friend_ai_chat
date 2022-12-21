@@ -16,7 +16,7 @@ class CharacterRepository {
         for (var char in result[key]) {
           //check if the character is already in the list
           var index = datas.indexWhere(
-              (element) => element.externalid == char['external_id']);
+              (element) => element.externalId == char['external_id']);
           if (index == -1) {
             var new_c = char;
             new_c['category'] = key;

@@ -51,7 +51,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
       loading = true;
     });
     await CharacterRepository.getCharacter(
-            "${widget.character?.externalid}", "${token}")
+            "${widget.character?.externalId}", "${token}")
         .then((value) {
       setState(() {
         characterDetail = value;
@@ -70,7 +70,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     }
 
     await ChatRepository.continueChat(
-            "${widget.character?.externalid}", "${token}")
+            "${widget.character?.externalId}", "${token}")
         .then((value) async {
       if (value != null) {
         setState(() {
@@ -78,7 +78,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
         });
       } else {
         await ChatRepository.createChat(
-                "${widget.character?.externalid}", "${token}")
+                "${widget.character?.externalId}", "${token}")
             .then((v) {
           setState(() {
             historyId = v;
@@ -150,7 +150,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
       url: "https://beta.character.ai/chat/streaming/",
       data: {
         "history_external_id": historyId,
-        "character_external_id": widget.character?.externalid,
+        "character_external_id": widget.character?.externalId,
         "text": msg,
         "tgt": characterDetail?.participantUserUsername,
         "ranking_method": "random",
@@ -298,7 +298,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
             children: [
               CachedNetworkImage(
                 imageUrl:
-                    "https://characterai.io/i/80/static/avatars/${widget.character?.avatarfilename}",
+                    "https://characterai.io/i/80/static/avatars/${widget.character?.avatarFilename}",
                 imageBuilder: (context, imageProvider) => Container(
                   width: 40.0,
                   height: 40.0,
@@ -312,7 +312,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
                 errorWidget: (context, url, error) => Icon(Icons.error),
               ),
               SizedBox(width: 20),
-              Text("${widget.character?.participantname}"),
+              Text("${widget.character?.participantName}"),
             ],
           ),
           // actions: [

@@ -59,8 +59,8 @@ class _CharacterListElementState extends State<CharacterListElement> {
   void filterSearch() {
     var searcheds = characters
         .where((element) =>
-            (element.participantname != null &&
-                element.participantname!
+            (element.participantName != null &&
+                element.participantName!
                     .toLowerCase()
                     .contains(widget.search!.toLowerCase())) ||
             (element.title != null &&
@@ -105,11 +105,11 @@ class _CharacterListElementState extends State<CharacterListElement> {
                   return Card(
                     child: ListTile(
                       title:
-                          Text("${searchedCharacters[index].participantname}"),
+                          Text("${searchedCharacters[index].participantName}"),
                       subtitle: Text("${searchedCharacters[index].title}"),
                       leading: CachedNetworkImage(
                         imageUrl:
-                            "https://characterai.io/i/80/static/avatars/${searchedCharacters[index].avatarfilename}",
+                            "https://characterai.io/i/80/static/avatars/${searchedCharacters[index].avatarFilename}",
                         imageBuilder: (context, imageProvider) => Container(
                           width: 80,
                           height: 80,
