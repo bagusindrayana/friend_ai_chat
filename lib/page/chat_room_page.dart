@@ -12,7 +12,7 @@ import 'package:friend_ai/provider/api_provider.dart';
 import 'package:friend_ai/provider/database_provider.dart';
 import 'package:friend_ai/repository/character_repository.dart';
 import 'package:friend_ai/repository/chat_repository.dart';
-import 'package:friend_ai/repository/uuid_repository.dart';
+import 'package:friend_ai/repository/user_repository.dart';
 import 'package:friend_ai/utility/utility_helper.dart';
 import 'package:loading_indicator/loading_indicator.dart';
 
@@ -36,30 +36,19 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   ScrollController scrollController = ScrollController();
 
   String? token;
-  Map<String, dynamic>? savedHistory;
-
-  Future<bool> getToken() async {
-    return await UuidRepository.getLazyToken().then((value) {
-      token = value?.token;
-      return true;
-    }).onError((error, stackTrace) => false);
-  }
 
   void getCharacterDetail() async {
-    await DatabaseProvider()
-        .getCharacterByExternalId(widget.character!.externalId!)
-        .then((value) {
-      if (value != null) {
-        setState(() {
-          savedHistory = value;
-        });
-        if (value['last_history_id'] != null) {
-          setState(() {
-            historyId = value['last_history_id'];
-          });
-        }
-      }
-    });
+    // await DatabaseProvider()
+    //     .getCharacterByExternalId(widget.character!.externalId!)
+    //     .then((value) {
+    //   if (value != null) {
+    //     if (value['last_history_id'] != null) {
+    //       setState(() {
+    //         historyId = value['last_history_id'];
+    //       });
+    //     }
+    //   }
+    // });
     setState(() {
       loading = true;
     });
@@ -106,9 +95,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     if (historyId != null) {
       widget.character?.lasthistoryid = historyId;
       var jsonChar = widget.character?.toJson();
-      if (savedHistory == null) {
-        await DatabaseProvider().insert("character", jsonChar!);
-      }
+
       await ChatRepository.getMessage(historyId!, "${token}").then((value) {
         setState(() {
           messages = value;
@@ -226,15 +213,8 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
 
       if (r != null) {
         if (r['force_login'] != null && r['force_login'] == true) {
-          getToken().then((_v) {
-            if (_v) {
-              streamMessage(msg);
-            } else {
-              UtilityHelper.showAlertDialog(context, "Anda harus login",
-                  "Please login to continue use this service");
-            }
-          });
-          //UtilityHelper.showAlertDialog(context, "Anda harus login","Please login to continue use this service");
+          UtilityHelper.showAlertDialog(context, "Anda harus login",
+              "Please login to continue use this service");
         }
 
         if (r['replies'] != null && r['replies'].length > 0) {
@@ -288,6 +268,24 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     return _result;
   }
 
+  void deleteChat() async {
+    UtilityHelper.showAlertDialogLoading(
+        context, "loading...", "deleting chat...");
+    await UserRepository.deleteChatHistory(
+            widget.token!, widget.character!.externalId!)
+        .then((value) {
+      if (value) {
+        Navigator.pop(context);
+        Navigator.pop(context);
+        UtilityHelper.showSnackBar(context, "Chat deleted");
+      } else {
+        Navigator.pop(context);
+        UtilityHelper.showAlertDialog(
+            context, "Error", "Failed to delete chat");
+      }
+    });
+  }
+
   @override
   void setState(fn) {
     if (mounted) {
@@ -328,12 +326,23 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
               Text("${widget.character?.participantName}"),
             ],
           ),
-          // actions: [
-          //   IconButton(
-          //       icon: Icon(Icons.chat_bubble),
-          //       onPressed: () {
-          //       })
-          // ],
+          actions: [
+            PopupMenuButton(
+                // add icon, by default "3 dot" icon
+                // icon: Icon(Icons.book)
+                itemBuilder: (context) {
+              return [
+                PopupMenuItem<int>(
+                  value: 0,
+                  child: Text("Delete Chat"),
+                ),
+              ];
+            }, onSelected: (value) {
+              if (value == 0) {
+                deleteChat();
+              }
+            }),
+          ],
         ),
         body: Stack(
           children: <Widget>[
@@ -400,25 +409,25 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
                 color: Colors.white,
                 child: Row(
                   children: <Widget>[
-                    GestureDetector(
-                      onTap: () {},
-                      child: Container(
-                        height: 30,
-                        width: 30,
-                        decoration: BoxDecoration(
-                          color: Colors.lightBlue,
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        child: Icon(
-                          Icons.add,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      width: 15,
-                    ),
+                    // GestureDetector(
+                    //   onTap: () {},
+                    //   child: Container(
+                    //     height: 30,
+                    //     width: 30,
+                    //     decoration: BoxDecoration(
+                    //       color: Colors.lightBlue,
+                    //       borderRadius: BorderRadius.circular(30),
+                    //     ),
+                    //     child: Icon(
+                    //       Icons.add,
+                    //       color: Colors.white,
+                    //       size: 20,
+                    //     ),
+                    //   ),
+                    // ),
+                    // SizedBox(
+                    //   width: 15,
+                    // ),
                     Expanded(
                       child: TextField(
                         onSubmitted: (value) {

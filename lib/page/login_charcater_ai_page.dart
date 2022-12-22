@@ -32,7 +32,6 @@ class _LoginCharacterAiPageState extends State<LoginCharacterAiPage> {
   PullToRefreshController? pullToRefreshController;
   String url = "";
   double progress = 0;
-  final urlController = TextEditingController();
   bool loginPage = false;
   bool loginSubmit = false;
   bool checkToken = false;
@@ -76,21 +75,10 @@ class _LoginCharacterAiPageState extends State<LoginCharacterAiPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(title: Text("Official InAppWebView website")),
+        appBar: AppBar(title: Text("Login to Character.ai")),
         body: SafeArea(
             child: Column(children: <Widget>[
-          TextField(
-            decoration: InputDecoration(prefixIcon: Icon(Icons.search)),
-            controller: urlController,
-            keyboardType: TextInputType.url,
-            onSubmitted: (value) {
-              var url = WebUri(value);
-              if (url.scheme.isEmpty) {
-                url = WebUri("https://www.google.com/search?q=" + value);
-              }
-              webViewController?.loadUrl(urlRequest: URLRequest(url: url));
-            },
-          ),
+          Text("url: $url"),
           Expanded(
             child: Stack(
               children: [
@@ -106,7 +94,6 @@ class _LoginCharacterAiPageState extends State<LoginCharacterAiPage> {
                   onLoadStart: (controller, url) {
                     setState(() {
                       this.url = url.toString();
-                      urlController.text = this.url;
                     });
                   },
                   onPermissionRequest: (controller, request) async {
@@ -143,13 +130,11 @@ class _LoginCharacterAiPageState extends State<LoginCharacterAiPage> {
                     pullToRefreshController?.endRefreshing();
                     setState(() {
                       this.url = url.toString();
-                      urlController.text = this.url;
                     });
 
                     //get domain name
                     var domain = Uri.parse(url.toString()).host;
-                    print("domain");
-                    print(domain);
+
                     if (domain == "character-ai.us.auth0.com" && !loginPage) {
                       loginPage = true;
                     }
@@ -219,13 +204,11 @@ class _LoginCharacterAiPageState extends State<LoginCharacterAiPage> {
                     }
                     setState(() {
                       this.progress = progress / 100;
-                      urlController.text = this.url;
                     });
                   },
                   onUpdateVisitedHistory: (controller, url, androidIsReload) {
                     setState(() {
                       this.url = url.toString();
-                      urlController.text = this.url;
                     });
                   },
                   onConsoleMessage: (controller, consoleMessage) {
@@ -241,18 +224,6 @@ class _LoginCharacterAiPageState extends State<LoginCharacterAiPage> {
           ButtonBar(
             alignment: MainAxisAlignment.center,
             children: <Widget>[
-              ElevatedButton(
-                child: Icon(Icons.arrow_back),
-                onPressed: () {
-                  webViewController?.goBack();
-                },
-              ),
-              ElevatedButton(
-                child: Icon(Icons.arrow_forward),
-                onPressed: () {
-                  webViewController?.goForward();
-                },
-              ),
               ElevatedButton(
                 child: Icon(Icons.refresh),
                 onPressed: () {

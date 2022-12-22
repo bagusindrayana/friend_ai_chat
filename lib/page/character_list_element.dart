@@ -1,9 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:friend_ai/component/character_component.dart';
 import 'package:friend_ai/main.dart';
 import 'package:friend_ai/model/character.dart';
 import 'package:friend_ai/page/chat_room_page.dart';
+import 'package:friend_ai/provider/database_provider.dart';
+import 'package:friend_ai/provider/storage_provider.dart';
 import 'package:friend_ai/repository/character_repository.dart';
 import 'package:friend_ai/repository/uuid_repository.dart';
 
@@ -45,16 +48,11 @@ class _CharacterListElementState extends State<CharacterListElement> {
     });
   }
 
-  Future<String?> getLocalToken() async {
-    final storage = new FlutterSecureStorage();
-    return await storage.read(key: "char_token");
-  }
-
   void getToken() async {
     setState(() {
       loading = true;
     });
-    await getLocalToken().then((value) {
+    await StorageProvider.getLocalToken().then((value) {
       if (value != null) {
         setState(() {
           token = value;
@@ -62,10 +60,13 @@ class _CharacterListElementState extends State<CharacterListElement> {
       }
     });
     if (token == null) {
-      await UuidRepository.getLazyToken().then((value) {
-        setState(() {
-          token = value?.token;
-        });
+      await UuidRepository.getLazyToken().then((value) async {
+        if (value != null && value.token != null) {
+          setState(() {
+            token = value.token;
+          });
+          await StorageProvider.setTempToken(value.token!);
+        }
       });
     }
     getDatas();
@@ -87,7 +88,7 @@ class _CharacterListElementState extends State<CharacterListElement> {
                     .toLowerCase()
                     .contains(widget.search!.toLowerCase())))
         .toList();
-    print(searcheds.length);
+    print(widget.search);
     setState(() {
       searchedCharacters = searcheds;
     });
@@ -114,50 +115,36 @@ class _CharacterListElementState extends State<CharacterListElement> {
               onRefresh: () async {
                 getToken();
               },
-              child: ListView.builder(
-                itemCount: searchedCharacters.length,
-                itemBuilder: (context, index) {
-                  return Card(
-                    child: ListTile(
-                      title:
-                          Text("${searchedCharacters[index].participantName}"),
-                      subtitle: Text("${searchedCharacters[index].title}"),
-                      leading: CachedNetworkImage(
-                        imageUrl:
-                            "https://characterai.io/i/80/static/avatars/${searchedCharacters[index].avatarFilename}",
-                        imageBuilder: (context, imageProvider) => Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            image: DecorationImage(
-                                image: imageProvider, fit: BoxFit.cover),
+              child: (searchedCharacters.length <= 0)
+                  ? ListView(
+                      children: [
+                        Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Text("No character found"),
                           ),
-                        ),
-                        placeholder: (context, url) => Container(
-                          height: 80,
-                          width: 80,
-                          child: Center(
-                            child: CircularProgressIndicator(),
-                          ),
-                        ),
-                        errorWidget: (context, url, error) => Icon(Icons.error),
-                      ),
-                      onTap: (() {
-                        if (token != null) {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => ChatRoomPage(
-                                        character: searchedCharacters[index],
-                                        token: token,
-                                      )));
-                        }
-                      }),
+                        )
+                      ],
+                    )
+                  : ListView.builder(
+                      itemCount: searchedCharacters.length,
+                      itemBuilder: (context, index) {
+                        return CharacterComponent(
+                            char: searchedCharacters[index],
+                            onTap: () {
+                              if (token != null) {
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) => ChatRoomPage(
+                                              character:
+                                                  searchedCharacters[index],
+                                              token: token,
+                                            )));
+                              }
+                            });
+                      },
                     ),
-                  );
-                },
-              ),
             )),
         (loading)
             ? Align(

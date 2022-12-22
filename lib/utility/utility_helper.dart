@@ -39,4 +39,25 @@ class UtilityHelper {
       ),
     );
   }
+
+  //show alert dialog loading
+  static Future<void> showAlertDialogLoading(
+      BuildContext context, String title, String content) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // user must tap button!
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: SizedBox(
+            height: 50,
+            width: 50,
+            child: Center(
+              child: CircularProgressIndicator(),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
