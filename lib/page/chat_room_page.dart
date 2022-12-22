@@ -1,7 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-
-import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -11,6 +9,7 @@ import 'package:friend_ai/model/character.dart';
 import 'package:friend_ai/model/charcater_detail.dart';
 import 'package:friend_ai/model/message.dart';
 import 'package:friend_ai/provider/api_provider.dart';
+import 'package:friend_ai/provider/database_provider.dart';
 import 'package:friend_ai/repository/character_repository.dart';
 import 'package:friend_ai/repository/chat_repository.dart';
 import 'package:friend_ai/repository/uuid_repository.dart';
@@ -33,11 +32,11 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   String? historyId;
   final whitespaceRE = RegExp(r"(?! )\s+| \s+");
 
-  List<AnimatedTextKit> replieAnimatedTextKit = [];
   TextEditingController msgController = TextEditingController();
   ScrollController scrollController = ScrollController();
 
   String? token;
+  Map<String, dynamic>? savedHistory;
 
   Future<bool> getToken() async {
     return await UuidRepository.getLazyToken().then((value) {
@@ -47,6 +46,20 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   }
 
   void getCharacterDetail() async {
+    await DatabaseProvider()
+        .getCharacterByExternalId(widget.character!.externalId!)
+        .then((value) {
+      if (value != null) {
+        setState(() {
+          savedHistory = value;
+        });
+        if (value['last_history_id'] != null) {
+          setState(() {
+            historyId = value['last_history_id'];
+          });
+        }
+      }
+    });
     setState(() {
       loading = true;
     });
@@ -69,25 +82,33 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
       });
     }
 
-    await ChatRepository.continueChat(
-            "${widget.character?.externalId}", "${token}")
-        .then((value) async {
-      if (value != null) {
-        setState(() {
-          historyId = value;
-        });
-      } else {
-        await ChatRepository.createChat(
-                "${widget.character?.externalId}", "${token}")
-            .then((v) {
+    print(historyId);
+    if (historyId == null) {
+      await ChatRepository.continueChat(
+              "${widget.character?.externalId}", "${token}")
+          .then((value) async {
+        if (value != null) {
           setState(() {
-            historyId = v;
+            historyId = value;
           });
-        });
-      }
-    });
+        } else {
+          await ChatRepository.createChat(
+                  "${widget.character?.externalId}", "${token}")
+              .then((v) {
+            setState(() {
+              historyId = v;
+            });
+          });
+        }
+      });
+    }
 
     if (historyId != null) {
+      widget.character?.lasthistoryid = historyId;
+      var jsonChar = widget.character?.toJson();
+      if (savedHistory == null) {
+        await DatabaseProvider().insert("character", jsonChar!);
+      }
       await ChatRepository.getMessage(historyId!, "${token}").then((value) {
         setState(() {
           messages = value;
@@ -236,18 +257,10 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
             if (!found) {
               setState(() {
                 messages.add(Message(
-                    animated: true,
-                    text: r['replies'][0]['text'],
-                    srcName: "${r['src_char']['participant']['name']}",
-                    animatedTextKits: [
-                      AnimatedTextKit(
-                        repeatForever: false,
-                        totalRepeatCount: 1,
-                        animatedTexts: [
-                          TypewriterAnimatedText(r['replies'][0]['text']),
-                        ],
-                      )
-                    ]));
+                  animated: true,
+                  text: r['replies'][0]['text'],
+                  srcName: "${r['src_char']['participant']['name']}",
+                ));
               });
             }
           }

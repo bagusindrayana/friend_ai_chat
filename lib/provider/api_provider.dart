@@ -35,7 +35,6 @@ class ApiProvider {
           (X509Certificate cert, String host, int port) => true;
       return client;
     };
-    print(header);
     String _url = '${base_url}${url}';
     _dio.options.headers = header ?? {};
     print(data);

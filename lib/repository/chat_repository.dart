@@ -70,13 +70,14 @@ class ChatRepository {
             "authorization": "Token $token",
             "Content-Type": "application/json"
           });
-
       if (response.statusCode == 200) {
         final result = response.data['messages'];
         for (var message in result) {
           datas.add(Message.fromJson(message));
         }
         return datas;
+      } else {
+        print(response.statusCode);
       }
     } catch (e) {
       print(e);

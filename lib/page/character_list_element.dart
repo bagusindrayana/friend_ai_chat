@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:friend_ai/main.dart';
 import 'package:friend_ai/model/character.dart';
 import 'package:friend_ai/page/chat_room_page.dart';
@@ -44,15 +45,29 @@ class _CharacterListElementState extends State<CharacterListElement> {
     });
   }
 
+  Future<String?> getLocalToken() async {
+    final storage = new FlutterSecureStorage();
+    return await storage.read(key: "char_token");
+  }
+
   void getToken() async {
     setState(() {
       loading = true;
     });
-    await UuidRepository.getLazyToken().then((value) {
-      setState(() {
-        token = value?.token;
-      });
+    await getLocalToken().then((value) {
+      if (value != null) {
+        setState(() {
+          token = value;
+        });
+      }
     });
+    if (token == null) {
+      await UuidRepository.getLazyToken().then((value) {
+        setState(() {
+          token = value?.token;
+        });
+      });
+    }
     getDatas();
   }
 

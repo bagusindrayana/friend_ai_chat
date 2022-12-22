@@ -1,6 +1,8 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart' as inapp;
 import 'package:friend_ai/component/keep_page_alive.dart';
 import 'package:friend_ai/page/character_list_element.dart';
 import 'package:friend_ai/page/chat_history_element.dart';
@@ -16,8 +18,12 @@ class MyHttpOverrides extends HttpOverrides {
   }
 }
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+    await inapp.InAppWebViewController.setWebContentsDebuggingEnabled(true);
+  }
 
   HttpOverrides.global = MyHttpOverrides();
   runApp(const MyApp());
@@ -86,14 +92,6 @@ class _MainNavigatorState extends State<MainNavigator> {
         icon: const Icon(Icons.search),
         onPressed: _startSearch,
       ),
-      IconButton(
-          onPressed: () {
-            Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => LoginCharacterAiPage()));
-          },
-          icon: Icon(Icons.more_vert))
     ];
   }
 

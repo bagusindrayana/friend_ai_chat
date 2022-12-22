@@ -1,5 +1,3 @@
-import 'package:animated_text_kit/animated_text_kit.dart';
-
 class Message {
   int? id;
   String? text;
@@ -12,7 +10,6 @@ class Message {
   String? imagePromptText;
   String? responsibleUserUsername;
   String? deleted;
-  List<AnimatedTextKit>? animatedTextKits;
   bool? animated;
 
   Message({
@@ -27,7 +24,6 @@ class Message {
     this.imagePromptText,
     this.responsibleUserUsername,
     this.deleted,
-    this.animatedTextKits,
     this.animated,
   });
 

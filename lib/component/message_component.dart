@@ -53,15 +53,19 @@ class _MessageComponentState extends State<MessageComponent> {
   Widget build(BuildContext context) {
     return ChatBubble(
       clipper: ChatBubbleClipper1(
-          type: (widget.message.srcName == "Guest")
+          type: (widget.message.srcName == "Guest" ||
+                  widget.message.srcIsHuman == true)
               ? BubbleType.sendBubble
               : BubbleType.receiverBubble),
-      alignment: (widget.message.srcName == "Guest")
+      alignment: (widget.message.srcName == "Guest" ||
+              widget.message.srcIsHuman == true)
           ? Alignment.topRight
           : Alignment.topLeft,
       margin: EdgeInsets.only(top: 20),
-      backGroundColor:
-          (widget.message.srcName == "Guest") ? Colors.blue : Colors.grey[200],
+      backGroundColor: (widget.message.srcName == "Guest" ||
+              widget.message.srcIsHuman == true)
+          ? Colors.blue
+          : Colors.grey[200],
       child: Container(
         constraints: BoxConstraints(
           maxWidth: MediaQuery.of(context).size.width * 0.7,

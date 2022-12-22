@@ -1,6 +1,11 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class LoginCharacterAiPage extends StatefulWidget {
@@ -19,18 +24,28 @@ class _LoginCharacterAiPageState extends State<LoginCharacterAiPage> {
       mediaPlaybackRequiresUserGesture: false,
       allowsInlineMediaPlayback: true,
       javaScriptEnabled: true,
-      iframeAllow: "camera; microphone",
+      domStorageEnabled: true,
+      clearCache: true,
+      clearSessionCache: true,
       iframeAllowFullscreen: true);
 
   PullToRefreshController? pullToRefreshController;
   String url = "";
   double progress = 0;
   final urlController = TextEditingController();
+  bool loginPage = false;
+  bool loginSubmit = false;
+  bool checkToken = false;
 
   void initWebview() async {
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       await InAppWebViewController.setWebContentsDebuggingEnabled(true);
     }
+  }
+
+  void saveToken(String token, BuildContext context) async {
+    final storage = new FlutterSecureStorage();
+    await storage.write(key: "char_token", value: token);
   }
 
   @override
@@ -85,7 +100,7 @@ class _LoginCharacterAiPageState extends State<LoginCharacterAiPage> {
                       url: WebUri("https://beta.character.ai/login")),
                   initialSettings: settings,
                   pullToRefreshController: pullToRefreshController,
-                  onWebViewCreated: (controller) {
+                  onWebViewCreated: (controller) async {
                     webViewController = controller;
                   },
                   onLoadStart: (controller, url) {
@@ -129,6 +144,70 @@ class _LoginCharacterAiPageState extends State<LoginCharacterAiPage> {
                     setState(() {
                       this.url = url.toString();
                       urlController.text = this.url;
+                    });
+
+                    //get domain name
+                    var domain = Uri.parse(url.toString()).host;
+                    print("domain");
+                    print(domain);
+                    if (domain == "character-ai.us.auth0.com" && !loginPage) {
+                      loginPage = true;
+                    }
+
+                    if (domain == "beta.character.ai" &&
+                        loginPage &&
+                        !loginSubmit) {
+                      loginSubmit = true;
+                    }
+
+                    if (domain == "beta.character.ai" &&
+                        loginPage &&
+                        loginSubmit &&
+                        !checkToken) {
+                      checkToken = true;
+                      Timer.periodic(new Duration(seconds: 3), (timer) {
+                        try {
+                          print("check token");
+                          controller.webStorage.localStorage
+                              .getItem(key: "char_token")
+                              .then((value) {
+                            if (value != null) {
+                              timer.cancel();
+                              print("get token");
+                              print(value["value"]);
+
+                              saveToken(value["value"], context);
+                              Navigator.pop(context);
+                            }
+                          }).catchError((e) {
+                            print(e);
+                            timer.cancel();
+                          });
+                        } catch (_) {
+                          timer.cancel();
+                        }
+                      });
+                    }
+
+                    controller.webStorage.localStorage
+                        .getItem(key: "in_eu")
+                        .then((value) {
+                      print(value);
+                      print("test 1");
+                    });
+
+                    controller.webStorage.localStorage
+                        .getItem(key: "chat_onboarding")
+                        .then((value) {
+                      print(value);
+                      print("test 2");
+                    });
+
+                    controller.webStorage.localStorage
+                        .getItem(key: "uuid")
+                        .then((value) {
+                      print(value);
+                      print("test 3");
                     });
                   },
                   onReceivedError: (controller, request, error) {
